@@ -1,19 +1,9 @@
 import os
 import time
 
-import requests
-from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 import pandas as pd
-
-
-def make_soup(ms_url):
-    # Make soups of each url.
-    response = requests.get(ms_url)
-    data = response.text
-    ms_soup = BeautifulSoup(data, 'html.parser')
-    return ms_soup
 
 
 def make_driver_chrome(mdc_url):
@@ -25,10 +15,15 @@ def make_driver_chrome(mdc_url):
 urls = ['https://www.zomato.com/melbourne/caf%C3%A9',
         'https://www.zomato.com/melbourne/restaurants/chinese']
 
+test = 'yes'
+page_test = 3
 item_no = 0
 item_dict = {}
 
+url_no = 0
+
 for url in urls:
+    url_no += 1
     page = 1
     while True:
         driver = make_driver_chrome(url)
@@ -40,7 +35,7 @@ for url in urls:
         items = list_search.find_elements_by_css_selector('div.card.search-snippet-card')
         for counter, item in enumerate(items, 1):
             # Monitor its progress.
-            print(page, ': ', counter)
+            print(url_no, ': ', page, ': ', counter)
 
             cuisines = item.find_element_by_css_selector('span.col-s-11').text
             organization = item.find_element_by_css_selector('a.result-title').text
@@ -54,21 +49,29 @@ for url in urls:
             item_no += 1
             item_dict[item_no] = [title_search, cuisines, organization, address, location, phone]
 
-            print(
-                title_search + '\n' + cuisines + '\n' + organization + '\n' + address + '\n' + location + '\n' + phone +
-                '\n')
+            # print(
+            #     title_search + '\n' + cuisines + '\n' + organization + '\n' + address + '\n' + location + '\n' +
+            #     phone +
+            #     '\n')
             # break
+
         page += 1
+
         time.sleep(10)
+
         try:
             url = driver.find_element_by_xpath('/html/body/section/div/div[2]/div[3]/div[2]/div/div[6]/div/div['
                                                '1]/section/div[2]/div[1]/div[2]/div/div/a[7]').get_attribute('href')
         except NoSuchElementException:
             break
+
         driver.quit()
-        if page == 3:
+
+        if page == page_test and test == 'yes':
             break
-    break
+    if test == 'yes':
+        break
+    # break
 df_items = pd.DataFrame.from_dict(item_dict, orient='Index', columns=['Title', 'Cuisines', 'Organization',
                                                                       'Address', 'Location', 'Phone'])
 df_items.to_excel('data.xlsx')
